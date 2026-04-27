@@ -64,6 +64,7 @@ export default function App() {
     voiceControl: false,
   });
 
+  const [countdown, setCountdown] = useState<number | null>(null);
   const [lastAction, setLastAction] = useState<string>("欢迎来到信息技术课！");
 
   // The core "OR" logic
@@ -85,11 +86,32 @@ export default function App() {
 
   useEffect(() => {
     if (isDoorOpen) {
+      setCountdown(8);
       setLastAction("太棒了！只要有一个条件满足，‘或’运算的结果就是‘1’，门就会开启！");
     } else {
-      setLastAction("注意看，当所有条件都是‘0’时，‘或’运算的结果才是‘0’，门是排闭的。");
+      setCountdown(null);
+      setLastAction("注意看，当所有条件都是‘0’时，‘或’运算的结果才是‘0’，门是关闭的。");
     }
-  }, [isDoorOpen]);
+  }, [logic.outsideCall, logic.insideOpen, logic.irSensor, logic.voiceControl]);
+
+  useEffect(() => {
+    let timer: any;
+    if (countdown !== null && countdown > 0) {
+      timer = setTimeout(() => {
+        setCountdown(prev => (prev !== null ? prev - 1 : null));
+      }, 1000);
+    } else if (countdown === 0) {
+      setLogic({
+        outsideCall: false,
+        insideOpen: false,
+        irSensor: false,
+        voiceControl: false,
+      });
+      setCountdown(null);
+      setLastAction("8秒到啦，由于没有新的指令，电梯门自动关闭了。这就是自动化控制！");
+    }
+    return () => clearTimeout(timer);
+  }, [countdown]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-pink-50 to-purple-50 font-sans p-4 md:p-8 overflow-x-hidden">
@@ -139,7 +161,7 @@ export default function App() {
           <div className="lg:col-span-7 flex flex-col items-center">
             <div className="relative w-full max-w-sm aspect-[4/5] bg-purple-700 rounded-t-[4rem] rounded-b-2xl border-x-8 border-t-8 border-purple-800 shadow-2xl flex flex-col overflow-hidden">
               {/* Floor Display */}
-              <div className="h-20 bg-black flex items-center justify-center border-b-4 border-purple-900">
+              <div className="h-20 bg-black flex items-center justify-center border-b-4 border-purple-900 relative">
                 <div className="bg-red-900/30 px-6 py-2 rounded flex flex-col items-center">
                   <span className="text-red-500 font-mono text-3xl font-bold leading-none">6</span>
                   <div className="flex gap-2 mt-1">
@@ -147,6 +169,20 @@ export default function App() {
                     <div className={`w-4 h-4 rounded-full ${isDoorOpen ? 'bg-red-500 animate-pulse' : 'bg-red-900'}`} />
                   </div>
                 </div>
+                
+                {/* Countdown Display */}
+                <AnimatePresence>
+                  {countdown !== null && (
+                    <motion.div 
+                      initial={{ opacity: 0, scale: 0.5 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.5 }}
+                      className="absolute right-4 top-4 bg-red-600 text-white font-mono text-xl font-black w-10 h-10 rounded-full flex items-center justify-center shadow-[0_0_15px_rgba(220,38,38,0.5)] border-2 border-red-400"
+                    >
+                      {countdown}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
 
               {/* Doors Area */}
