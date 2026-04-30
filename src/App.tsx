@@ -12,10 +12,11 @@ import {
   Eye, 
   Mic, 
   CheckCircle2, 
-  XCircle,
   Info,
   ChevronRight,
-  Monitor
+  Monitor,
+  BellRing,
+  Scale
 } from 'lucide-react';
 
 // --- Types ---
@@ -56,7 +57,7 @@ const TeacherRobot = ({ message }: { message: string }) => (
   </motion.div>
 );
 
-export default function App() {
+function OrLogicFeature({ setLastAction }: { setLastAction: (msg: string) => void }) {
   const [logic, setLogic] = useState<LogicState>({
     outsideCall: false,
     insideOpen: false,
@@ -65,7 +66,6 @@ export default function App() {
   });
 
   const [countdown, setCountdown] = useState<number | null>(null);
-  const [lastAction, setLastAction] = useState<string>("欢迎来到信息技术课！");
 
   // The core "OR" logic
   const isDoorOpen = logic.outsideCall || logic.insideOpen || logic.irSensor || logic.voiceControl;
@@ -92,7 +92,7 @@ export default function App() {
       setCountdown(null);
       setLastAction("注意看，当所有条件都是‘0’时，‘或’运算的结果才是‘0’，门是关闭的。");
     }
-  }, [logic.outsideCall, logic.insideOpen, logic.irSensor, logic.voiceControl]);
+  }, [logic.outsideCall, logic.insideOpen, logic.irSensor, logic.voiceControl, isDoorOpen, setLastAction]);
 
   useEffect(() => {
     let timer: any;
@@ -111,12 +111,412 @@ export default function App() {
       setLastAction("8秒到啦，由于没有新的指令，电梯门自动关闭了。这就是自动化控制！");
     }
     return () => clearTimeout(timer);
-  }, [countdown]);
+  }, [countdown, setLastAction]);
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      {/* Left Area: Elevator Visual */}
+      <div className="lg:col-span-7 flex flex-col items-center">
+        <div className="relative w-full max-w-sm aspect-[4/5] bg-purple-700 rounded-t-[4rem] rounded-b-2xl border-x-8 border-t-8 border-purple-800 shadow-2xl flex flex-col overflow-hidden">
+          {/* Floor Display */}
+          <div className="h-20 bg-black flex items-center justify-center border-b-4 border-purple-900 relative">
+            <div className="bg-red-900/30 px-6 py-2 rounded flex flex-col items-center">
+              <span className="text-red-500 font-mono text-3xl font-bold leading-none">6</span>
+              <div className="flex gap-2 mt-1">
+                <ArrowUpCircle className={`w-4 h-4 ${isDoorOpen ? 'text-red-500' : 'text-red-900'}`} />
+                <div className={`w-4 h-4 rounded-full ${isDoorOpen ? 'bg-red-500 animate-pulse' : 'bg-red-900'}`} />
+              </div>
+            </div>
+            
+            {/* Countdown Display */}
+            <AnimatePresence>
+              {countdown !== null && (
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.5 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.5 }}
+                  className="absolute right-4 top-4 bg-red-600 text-white font-mono text-xl font-black w-10 h-10 rounded-full flex items-center justify-center shadow-[0_0_15px_rgba(220,38,38,0.5)] border-2 border-red-400"
+                >
+                  {countdown}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* Doors Area */}
+          <div className="flex-1 bg-purple-950 relative flex">
+            {/* Background inside elevator */}
+            <div className="absolute inset-0 bg-yellow-50 flex items-center justify-center">
+              <div className="text-center">
+                <p className="text-6xl mb-2">🎉</p>
+                <p className="text-yellow-600 font-bold">欢迎进入！</p>
+              </div>
+            </div>
+
+            {/* Left Door */}
+            <motion.div 
+              className="w-1/2 h-full bg-gradient-to-r from-purple-500 to-purple-400 border-r border-purple-600/30 z-10 flex items-center justify-end pr-4"
+              animate={{ translateX: isDoorOpen ? '-90%' : '0%' }}
+              transition={{ type: "spring", stiffness: 60, damping: 20 }}
+            >
+              <div className="w-1 h-32 bg-purple-200/20 rounded-full" />
+            </motion.div>
+
+            {/* Right Door */}
+            <motion.div 
+              className="w-1/2 h-full bg-gradient-to-l from-purple-500 to-purple-400 border-l border-purple-600/30 z-10 flex items-center justify-start pl-4"
+              animate={{ translateX: isDoorOpen ? '90%' : '0%' }}
+              transition={{ type: "spring", stiffness: 60, damping: 20 }}
+            >
+              <div className="w-1 h-32 bg-purple-200/20 rounded-full" />
+            </motion.div>
+            
+            {/* Door Frame Detail */}
+            <div className="absolute inset-0 pointer-events-none border-t-8 border-purple-900" />
+          </div>
+          
+          {/* Bottom detail */}
+          <div className="h-8 bg-purple-800" />
+        </div>
+        
+        <div className="mt-8 bg-white/80 backdrop-blur p-6 rounded-3xl shadow-lg border border-white max-w-sm w-full">
+          <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+            <CheckCircle2 className="text-green-500" />
+            状态监测
+          </h3>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="p-3 bg-gray-50 rounded-2xl flex items-center justify-between">
+              <span className="text-sm text-gray-600">电梯状态</span>
+              <span className={`px-2 py-1 rounded-full text-xs font-bold ${isDoorOpen ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-600'}`}>
+                {isDoorOpen ? '工作中' : '待机'}
+              </span>
+            </div>
+            <div className="p-3 bg-gray-50 rounded-2xl flex items-center justify-between">
+              <span className="text-sm text-gray-600">逻辑输出</span>
+              <span className={`text-lg font-mono font-bold ${isDoorOpen ? 'text-pink-600' : 'text-gray-400'}`}>
+                {isDoorOpen ? '1 (真)' : '0 (假)'}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Right Area: Control Panel & Truth Table */}
+      <div className="lg:col-span-5 space-y-6">
+        {/* Control Panel */}
+        <section className="bg-white p-6 rounded-[2rem] shadow-xl border-4 border-white">
+          <h2 className="text-2xl font-black text-gray-800 mb-6 flex items-center gap-3">
+            <DoorOpen className="text-pink-500" />
+            输入控制指令
+          </h2>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {[
+              { id: 'outsideCall', name: '外部呼叫键', icon: ArrowUpCircle, color: 'blue' },
+              { id: 'insideOpen', name: '内部开门键', icon: DoorOpen, color: 'pink' },
+              { id: 'irSensor', name: '红外感应器', icon: Eye, color: 'purple' },
+              { id: 'voiceControl', name: '语音检测', icon: Mic, color: 'orange' }
+            ].map((item) => {
+              const Icon = item.icon;
+              const isActive = (logic as any)[item.id];
+              return (
+                <motion.button
+                  id={`btn-${item.id}`}
+                  key={item.id}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => toggleLogic(item.id as keyof LogicState)}
+                  className={`flex flex-col items-center justify-center p-6 rounded-3xl transition-all duration-300 border-b-4 ${
+                    isActive 
+                      ? `bg-${item.color}-500 border-${item.color}-700 text-white shadow-lg translate-y-[2px]` 
+                      : 'bg-gray-100 border-gray-300 text-gray-500 grayscale'
+                  }`}
+                  style={{
+                    backgroundColor: isActive ? (`${item.color === 'blue' ? '#3b82f6' : item.color === 'pink' ? '#ec4899' : item.color === 'purple' ? '#a855f7' : '#f97316'}`) : undefined
+                  }}
+                >
+                  <Icon className="w-10 h-10 mb-3" />
+                  <span className="font-bold whitespace-nowrap">{item.name}</span>
+                  <span className="text-xs opacity-80 mt-1">{isActive ? '输入: 1' : '输入: 0'}</span>
+                </motion.button>
+              );
+            })}
+          </div>
+        </section>
+
+        {/* Truth Table */}
+        <section className="bg-white p-6 rounded-[2rem] shadow-xl overflow-hidden border-4 border-white">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-black text-gray-800 flex items-center gap-2">
+              <ChevronRight className="text-purple-500" />
+              真值表秘密
+            </h2>
+            <div className="bg-purple-100 px-3 py-1 rounded-full text-xs font-bold text-purple-600">
+              只要有一个是1，结果就是1
+            </div>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table id="truth-table" className="w-full text-center border-separate border-spacing-1">
+              <thead>
+                <tr className="text-xs text-gray-500 uppercase tracking-wider">
+                  <th className="p-2">条件A</th>
+                  <th className="p-2">+</th>
+                  <th className="p-2">条件B</th>
+                  <th className="p-2">=</th>
+                  <th className="p-2">结果</th>
+                </tr>
+              </thead>
+              <tbody className="font-mono">
+                {[
+                  [0, 0, 0, false],
+                  [0, 1, 1, logic.insideOpen || logic.irSensor || logic.voiceControl],
+                  [1, 0, 1, logic.outsideCall],
+                  [1, 1, 1, logic.outsideCall && (logic.insideOpen || logic.irSensor || logic.voiceControl)]
+                ].map((row, idx) => (
+                  <tr 
+                    key={idx}
+                    className={`transition-colors duration-200 ${
+                      row[3] ? 'bg-pink-50' : 'bg-transparent'
+                    }`}
+                  >
+                    <td className="p-3 bg-gray-50 rounded-lg text-lg font-bold">{row[0]}</td>
+                    <td className="p-3 text-gray-300 font-bold">+</td>
+                    <td className="p-3 bg-gray-50 rounded-lg text-lg font-bold">{row[1]}</td>
+                    <td className="p-3 text-gray-300 font-bold">=</td>
+                    <td className={`p-3 rounded-lg text-xl font-black ${row[2] === 1 ? 'text-pink-500' : 'text-gray-400'}`}>
+                      {row[2]}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          
+          <div className="mt-6 p-4 bg-blue-50 rounded-2xl border border-blue-100">
+            <div className="flex gap-3">
+              <div className="bg-blue-500 p-2 rounded-xl h-fit text-white">
+                <Info className="w-4 h-4" />
+              </div>
+              <div>
+                <h4 className="font-bold text-blue-900 text-sm">老师敲黑板：</h4>
+                <p className="text-blue-700 text-xs leading-relaxed mt-1">
+                  这就是逻辑“或”运算（OR）。就像电梯一样，不论是外面的人按键，还是里面的人按键，只要有人需要门开，门就会响应。这是计算机程序中非常基础且重要的逻辑哦！
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+  );
+}
+
+function NotLogicFeature({ setLastAction }: { setLastAction: (msg: string) => void }) {
+  const [weight, setWeight] = useState(399);
+  const threshold = 500;
+  const isOverloaded = weight > threshold;
+  const notOverloaded = !isOverloaded; // 核心“非”逻辑
+
+  useEffect(() => {
+    if (!notOverloaded) {
+      setLastAction("超载啦！触发非逻辑：当‘重量未超标’为0（假）时，输出报警并停止运行！");
+    } else {
+      setLastAction("重量正常。‘重量未超标’为1（真），电梯正常运行。");
+    }
+  }, [weight, notOverloaded, setLastAction]);
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      {/* Left Area: Elevator Visual with Scale */}
+      <div className="lg:col-span-7 flex flex-col items-center">
+        <div className="relative w-full max-w-sm aspect-[4/5] bg-purple-700 rounded-t-[4rem] rounded-b-2xl border-x-8 border-t-8 border-purple-800 shadow-2xl flex flex-col overflow-hidden">
+          {/* Top Panel - Alarm Indicator */}
+          <div className="h-20 bg-black flex items-center justify-center border-b-4 border-purple-900 relative gap-4">
+            <motion.div 
+              animate={{ opacity: isOverloaded ? [1, 0.5, 1] : 0.3 }}
+              transition={{ repeat: Infinity, duration: 0.5 }}
+              className={`w-12 h-12 rounded-full flex items-center justify-center ${isOverloaded ? 'bg-red-500 shadow-[0_0_20px_rgba(220,38,38,0.8)]' : 'bg-red-900'}`}
+            >
+              <BellRing className={`w-6 h-6 ${isOverloaded ? 'text-white' : 'text-red-950'}`} />
+            </motion.div>
+            <div className="bg-red-900/30 px-6 py-2 rounded flex flex-col items-center">
+              <span className={`font-mono text-2xl font-bold leading-none ${isOverloaded ? 'text-red-500' : 'text-green-500'}`}>
+                {isOverloaded ? '超载 (STOP)' : '正常 (RUN)'}
+              </span>
+            </div>
+          </div>
+
+          {/* Elevator Inside */}
+          <div className="flex-1 bg-purple-950 relative flex items-center justify-center overflow-hidden">
+            <div className="absolute inset-0 bg-yellow-50 flex flex-col items-center justify-end pb-8">
+              {/* Passenger / Weight */}
+              <motion.div 
+                animate={{ y: isOverloaded ? 10 : 0, scale: isOverloaded ? 1.05 : 1 }}
+                className={`p-6 rounded-3xl flex flex-col items-center border-4 shadow-xl z-20 ${isOverloaded ? 'bg-red-100 border-red-300' : 'bg-green-100 border-green-300'}`}
+              >
+                <span className="text-6xl mb-2">{isOverloaded ? '😰' : '😊'}</span>
+                <div className="bg-white px-4 py-2 rounded-full font-bold text-gray-800 flex items-center gap-2 shadow-sm">
+                  <Scale className="w-4 h-4 text-gray-500" />
+                  {weight} g
+                </div>
+              </motion.div>
+            </div>
+
+            {/* Left Door */}
+            <motion.div 
+              className="absolute left-0 top-0 bottom-0 w-1/2 bg-gradient-to-r from-purple-500 to-purple-400 border-r border-purple-600/30 z-10 flex items-center justify-end pr-4"
+              animate={{ translateX: isOverloaded ? '0%' : '-90%' }}
+              transition={{ type: "spring", stiffness: 60, damping: 20 }}
+            >
+              <div className="w-1 h-32 bg-purple-200/20 rounded-full" />
+            </motion.div>
+
+            {/* Right Door */}
+            <motion.div 
+              className="absolute right-0 top-0 bottom-0 w-1/2 bg-gradient-to-l from-purple-500 to-purple-400 border-l border-purple-600/30 z-10 flex items-center justify-start pl-4"
+              animate={{ translateX: isOverloaded ? '0%' : '90%' }}
+              transition={{ type: "spring", stiffness: 60, damping: 20 }}
+            >
+              <div className="w-1 h-32 bg-purple-200/20 rounded-full" />
+            </motion.div>
+            
+            {/* Door Frame Detail */}
+            <div className="absolute inset-0 pointer-events-none border-t-8 border-purple-900 z-30" />
+          </div>
+          
+          <div className="h-8 bg-purple-800 z-30 relative" />
+        </div>
+        
+        {/* Status Monitoring */}
+        <div className="mt-8 bg-white/80 backdrop-blur p-6 rounded-3xl shadow-lg border border-white max-w-sm w-full">
+          <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+            <CheckCircle2 className="text-green-500" />
+            系统状态监测
+          </h3>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="p-3 bg-gray-50 rounded-2xl flex items-center justify-between">
+              <span className="text-sm text-gray-600">重量未超标</span>
+              <span className={`text-lg font-mono font-bold ${notOverloaded ? 'text-green-600' : 'text-red-600'}`}>
+                {notOverloaded ? '1 (真)' : '0 (假)'}
+              </span>
+            </div>
+            <div className="p-3 bg-gray-50 rounded-2xl flex items-center justify-between">
+              <span className="text-sm text-gray-600">报警/停运</span>
+              <span className={`text-lg font-mono font-bold ${isOverloaded ? 'text-red-600' : 'text-gray-400'}`}>
+                {isOverloaded ? '1 (真)' : '0 (假)'}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Right Area: Controls */}
+      <div className="lg:col-span-5 space-y-6">
+        {/* Input Control */}
+        <section className="bg-white p-6 rounded-[2rem] shadow-xl border-4 border-white">
+          <h2 className="text-2xl font-black text-gray-800 mb-6 flex items-center gap-3">
+            <Scale className="text-purple-500" />
+            输入当前重量
+          </h2>
+          
+          <div className="mb-6">
+            <label className="block text-sm font-bold text-gray-700 mb-2">载重阈值: {threshold}g</label>
+            <input 
+              type="range" 
+              min="0" 
+              max="1000" 
+              value={weight} 
+              onChange={(e) => setWeight(Number(e.target.value))}
+              className="w-full h-3 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-purple-600"
+            />
+            <div className="flex justify-between text-xs text-gray-500 mt-2 font-mono">
+              <span>0g</span>
+              <span>1000g</span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <button 
+              onClick={() => setWeight(399)}
+              className={`py-3 rounded-xl font-bold transition-all border-b-4 ${weight === 399 ? 'bg-green-500 border-green-700 text-white translate-y-[2px]' : 'bg-green-50 border-green-200 text-green-700 hover:bg-green-100'}`}
+            >
+              设为 399g (未超载)
+            </button>
+            <button 
+              onClick={() => setWeight(557)}
+              className={`py-3 rounded-xl font-bold transition-all border-b-4 ${weight === 557 ? 'bg-red-500 border-red-700 text-white translate-y-[2px]' : 'bg-red-50 border-red-200 text-red-700 hover:bg-red-100'}`}
+            >
+              设为 557g (已超载)
+            </button>
+          </div>
+        </section>
+
+        {/* Logic Explanation */}
+        <section className="bg-white p-6 rounded-[2rem] shadow-xl border-4 border-white">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-black text-gray-800 flex items-center gap-2">
+              <ChevronRight className="text-purple-500" />
+              “非”逻辑揭秘
+            </h2>
+            <div className="bg-purple-100 px-3 py-1 rounded-full text-xs font-bold text-purple-600">
+              NOT (反转)
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div className={`p-4 rounded-xl border-2 flex items-center justify-between transition-colors ${notOverloaded ? 'border-green-500 bg-green-50' : 'border-gray-200'}`}>
+              <div>
+                <div className="font-bold text-gray-800">条件：重量未超标</div>
+                <div className="text-sm text-gray-500">当前: {weight}g</div>
+              </div>
+              <div className={`text-2xl font-black ${notOverloaded ? 'text-green-500' : 'text-gray-400'}`}>
+                {notOverloaded ? '1' : '0'}
+              </div>
+            </div>
+
+            <div className="flex justify-center">
+              <ArrowDownCircle className="text-purple-300 w-8 h-8" />
+            </div>
+
+            <div className={`p-4 rounded-xl border-2 flex items-center justify-between transition-colors ${!notOverloaded ? 'border-red-500 bg-red-50' : 'border-gray-200'}`}>
+              <div>
+                <div className="font-bold text-gray-800">结果：触发报警并停运</div>
+                <div className="text-sm text-gray-500">非（NOT）逻辑运算</div>
+              </div>
+              <div className={`text-2xl font-black ${!notOverloaded ? 'text-red-500' : 'text-gray-400'}`}>
+                {!notOverloaded ? '1' : '0'}
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-6 p-4 bg-purple-50 rounded-2xl border border-purple-100">
+            <div className="flex gap-3">
+              <div className="bg-purple-500 p-2 rounded-xl h-fit text-white">
+                <Info className="w-4 h-4" />
+              </div>
+              <div>
+                <h4 className="font-bold text-purple-900 text-sm">老师敲黑板：</h4>
+                <p className="text-purple-700 text-xs leading-relaxed mt-1">
+                  这就是逻辑“非”运算（NOT）。它会把输入的状态反转。在这里，如果“重量未超标”这个条件为假（0），经过“非”运算后，输出的报警指令就变成了真（1）。
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+  );
+}
+
+export default function App() {
+  const [activeTab, setActiveTab] = useState<'or' | 'not'>('or');
+  const [lastAction, setLastAction] = useState<string>("欢迎来到信息技术课！");
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-pink-50 to-purple-50 font-sans p-4 md:p-8 overflow-x-hidden">
       {/* Floating Background Effects */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden">
+      <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
         {[...Array(6)].map((_, i) => (
           <motion.div
             key={i}
@@ -143,12 +543,12 @@ export default function App() {
 
       <div className="max-w-6xl mx-auto relative z-10">
         {/* Header */}
-        <header className="mb-12 text-center">
+        <header className="mb-8 text-center">
           <div className="flex justify-center mb-6">
             <ElevatorLogo />
           </div>
           <h1 className="text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600 mb-4 tracking-tight">
-            萌萌电梯：神奇的“或”运算
+            电梯逻辑大揭秘
           </h1>
           <div className="inline-flex items-center gap-2 bg-white/60 backdrop-blur px-4 py-2 rounded-full border border-purple-100 shadow-sm">
             <Info className="w-4 h-4 text-purple-500" />
@@ -156,210 +556,41 @@ export default function App() {
           </div>
         </header>
 
-        <main className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          {/* Left Area: Elevator Visual */}
-          <div className="lg:col-span-7 flex flex-col items-center">
-            <div className="relative w-full max-w-sm aspect-[4/5] bg-purple-700 rounded-t-[4rem] rounded-b-2xl border-x-8 border-t-8 border-purple-800 shadow-2xl flex flex-col overflow-hidden">
-              {/* Floor Display */}
-              <div className="h-20 bg-black flex items-center justify-center border-b-4 border-purple-900 relative">
-                <div className="bg-red-900/30 px-6 py-2 rounded flex flex-col items-center">
-                  <span className="text-red-500 font-mono text-3xl font-bold leading-none">6</span>
-                  <div className="flex gap-2 mt-1">
-                    <ArrowUpCircle className={`w-4 h-4 ${isDoorOpen ? 'text-red-500' : 'text-red-900'}`} />
-                    <div className={`w-4 h-4 rounded-full ${isDoorOpen ? 'bg-red-500 animate-pulse' : 'bg-red-900'}`} />
-                  </div>
-                </div>
-                
-                {/* Countdown Display */}
-                <AnimatePresence>
-                  {countdown !== null && (
-                    <motion.div 
-                      initial={{ opacity: 0, scale: 0.5 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.5 }}
-                      className="absolute right-4 top-4 bg-red-600 text-white font-mono text-xl font-black w-10 h-10 rounded-full flex items-center justify-center shadow-[0_0_15px_rgba(220,38,38,0.5)] border-2 border-red-400"
-                    >
-                      {countdown}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-
-              {/* Doors Area */}
-              <div className="flex-1 bg-purple-950 relative flex">
-                {/* Background inside elevator */}
-                <div className="absolute inset-0 bg-yellow-50 flex items-center justify-center">
-                  <div className="text-center">
-                    <p className="text-6xl mb-2">🎉</p>
-                    <p className="text-yellow-600 font-bold">欢迎进入！</p>
-                  </div>
-                </div>
-
-                {/* Left Door */}
-                <motion.div 
-                  className="w-1/2 h-full bg-gradient-to-r from-purple-500 to-purple-400 border-r border-purple-600/30 z-10 flex items-center justify-end pr-4"
-                  animate={{ translateX: isDoorOpen ? '-90%' : '0%' }}
-                  transition={{ type: "spring", stiffness: 60, damping: 20 }}
-                >
-                  <div className="w-1 h-32 bg-purple-200/20 rounded-full" />
-                </motion.div>
-
-                {/* Right Door */}
-                <motion.div 
-                  className="w-1/2 h-full bg-gradient-to-l from-purple-500 to-purple-400 border-l border-purple-600/30 z-10 flex items-center justify-start pl-4"
-                  animate={{ translateX: isDoorOpen ? '90%' : '0%' }}
-                  transition={{ type: "spring", stiffness: 60, damping: 20 }}
-                >
-                  <div className="w-1 h-32 bg-purple-200/20 rounded-full" />
-                </motion.div>
-                
-                {/* Door Frame Detail */}
-                <div className="absolute inset-0 pointer-events-none border-t-8 border-purple-900" />
-              </div>
-              
-              {/* Bottom detail */}
-              <div className="h-8 bg-purple-800" />
-            </div>
-            
-            <div className="mt-8 bg-white/80 backdrop-blur p-6 rounded-3xl shadow-lg border border-white max-w-sm w-full">
-              <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-                <CheckCircle2 className="text-green-500" />
-                状态监测
-              </h3>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="p-3 bg-gray-50 rounded-2xl flex items-center justify-between">
-                  <span className="text-sm text-gray-600">电梯状态</span>
-                  <span className={`px-2 py-1 rounded-full text-xs font-bold ${isDoorOpen ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-600'}`}>
-                    {isDoorOpen ? '工作中' : '待机'}
-                  </span>
-                </div>
-                <div className="p-3 bg-gray-50 rounded-2xl flex items-center justify-between">
-                  <span className="text-sm text-gray-600">逻辑输出</span>
-                  <span className={`text-lg font-mono font-bold ${isDoorOpen ? 'text-pink-600' : 'text-gray-400'}`}>
-                    {isDoorOpen ? '1 (真)' : '0 (假)'}
-                  </span>
-                </div>
-              </div>
-            </div>
+        {/* Navigation Bar */}
+        <div className="flex justify-center mb-10">
+          <div className="bg-white/80 backdrop-blur p-2 rounded-full flex gap-2 shadow-sm border border-white">
+            <button 
+              onClick={() => { setActiveTab('or'); setLastAction("已切换到电梯门控制（或运算）。"); }}
+              className={`px-6 py-3 md:px-8 rounded-full font-bold transition-all text-sm md:text-base ${
+                activeTab === 'or' ? 'bg-pink-500 text-white shadow-md' : 'text-gray-500 hover:bg-gray-100'
+              }`}
+            >
+              神奇的“或”运算
+            </button>
+            <button 
+              onClick={() => { setActiveTab('not'); setLastAction("已切换到超载报警系统（非运算）。"); }}
+              className={`px-6 py-3 md:px-8 rounded-full font-bold transition-all text-sm md:text-base ${
+                activeTab === 'not' ? 'bg-purple-500 text-white shadow-md' : 'text-gray-500 hover:bg-gray-100'
+              }`}
+            >
+              小哨兵超载报警 (非)
+            </button>
           </div>
+        </div>
 
-          {/* Right Area: Control Panel & Truth Table */}
-          <div className="lg:col-span-5 space-y-6">
-            {/* Control Panel */}
-            <section className="bg-white p-6 rounded-[2rem] shadow-xl border-4 border-white">
-              <h2 className="text-2xl font-black text-gray-800 mb-6 flex items-center gap-3">
-                <DoorOpen className="text-pink-500" />
-                输入控制指令
-              </h2>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {[
-                  { id: 'outsideCall', name: '外部呼叫键', icon: ArrowUpCircle, color: 'blue' },
-                  { id: 'insideOpen', name: '内部开门键', icon: DoorOpen, color: 'pink' },
-                  { id: 'irSensor', name: '红外感应器', icon: Eye, color: 'purple' },
-                  { id: 'voiceControl', name: '语音检测', icon: Mic, color: 'orange' }
-                ].map((item) => {
-                  const Icon = item.icon;
-                  const isActive = (logic as any)[item.id];
-                  return (
-                    <motion.button
-                      id={`btn-${item.id}`}
-                      key={item.id}
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={() => toggleLogic(item.id as keyof LogicState)}
-                      className={`flex flex-col items-center justify-center p-6 rounded-3xl transition-all duration-300 border-b-4 ${
-                        isActive 
-                          ? `bg-${item.color}-500 border-${item.color}-700 text-white shadow-lg translate-y-[2px]` 
-                          : 'bg-gray-100 border-gray-300 text-gray-500 grayscale'
-                      }`}
-                      style={{
-                        backgroundColor: isActive ? (`${item.color === 'blue' ? '#3b82f6' : item.color === 'pink' ? '#ec4899' : item.color === 'purple' ? '#a855f7' : '#f97316'}`) : undefined
-                      }}
-                    >
-                      <Icon className="w-10 h-10 mb-3" />
-                      <span className="font-bold whitespace-nowrap">{item.name}</span>
-                      <span className="text-xs opacity-80 mt-1">{isActive ? '输入: 1' : '输入: 0'}</span>
-                    </motion.button>
-                  );
-                })}
-              </div>
-            </section>
-
-            {/* Truth Table */}
-            <section className="bg-white p-6 rounded-[2rem] shadow-xl overflow-hidden border-4 border-white">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-black text-gray-800 flex items-center gap-2">
-                  <ChevronRight className="text-purple-500" />
-                  真值表秘密
-                </h2>
-                <div className="bg-purple-100 px-3 py-1 rounded-full text-xs font-bold text-purple-600">
-                  只要有一个是1，结果就是1
-                </div>
-              </div>
-
-              <div className="overflow-x-auto">
-                <table id="truth-table" className="w-full text-center border-separate border-spacing-1">
-                  <thead>
-                    <tr className="text-xs text-gray-500 uppercase tracking-wider">
-                      <th className="p-2">条件A</th>
-                      <th className="p-2">+</th>
-                      <th className="p-2">条件B</th>
-                      <th className="p-2">=</th>
-                      <th className="p-2">结果</th>
-                    </tr>
-                  </thead>
-                  <tbody className="font-mono">
-                    {[
-                      [0, 0, 0, false],
-                      [0, 1, 1, logic.insideOpen || logic.irSensor || logic.voiceControl],
-                      [1, 0, 1, logic.outsideCall],
-                      [1, 1, 1, logic.outsideCall && (logic.insideOpen || logic.irSensor || logic.voiceControl)]
-                    ].map((row, idx) => (
-                      <tr 
-                        key={idx}
-                        className={`transition-colors duration-200 ${
-                          row[3] ? 'bg-pink-50' : 'bg-transparent'
-                        }`}
-                      >
-                        <td className="p-3 bg-gray-50 rounded-lg text-lg font-bold">{row[0]}</td>
-                        <td className="p-3 text-gray-300 font-bold">+</td>
-                        <td className="p-3 bg-gray-50 rounded-lg text-lg font-bold">{row[1]}</td>
-                        <td className="p-3 text-gray-300 font-bold">=</td>
-                        <td className={`p-3 rounded-lg text-xl font-black ${row[2] === 1 ? 'text-pink-500' : 'text-gray-400'}`}>
-                          {row[2]}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              
-              <div className="mt-6 p-4 bg-blue-50 rounded-2xl border border-blue-100">
-                <div className="flex gap-3">
-                  <div className="bg-blue-500 p-2 rounded-xl h-fit text-white">
-                    <Info className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-blue-900 text-sm">老师敲黑板：</h4>
-                    <p className="text-blue-700 text-xs leading-relaxed mt-1">
-                      这就是逻辑“或”运算（OR）。就像电梯一样，不论是外面的人按键，还是里面的人按键，只要有人需要门开，门就会响应。这是计算机程序中非常基础且重要的逻辑哦！
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </section>
-          </div>
+        <main>
+          {activeTab === 'or' && <OrLogicFeature setLastAction={setLastAction} />}
+          {activeTab === 'not' && <NotLogicFeature setLastAction={setLastAction} />}
         </main>
       </div>
 
       <TeacherRobot message={lastAction} />
 
-      {/* Decorative floating bubbles from image */}
+      {/* Decorative floating bubbles */}
       <div className="fixed top-0 left-0 w-full h-full pointer-events-none z-0">
         {[...Array(12)].map((_, i) => (
           <motion.div
-            key={i}
+            key={`bubble-${i}`}
             className="absolute opacity-20"
             style={{
               left: `${Math.random() * 100}%`,
