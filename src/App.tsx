@@ -16,7 +16,13 @@ import {
   ChevronRight,
   Monitor,
   BellRing,
-  Scale
+  Scale,
+  Car,
+  RefreshCcw,
+  Navigation,
+  Power,
+  ArrowLeftCircle,
+  ArrowRightCircle
 } from 'lucide-react';
 
 // --- Types ---
@@ -509,8 +515,253 @@ function NotLogicFeature({ setLastAction }: { setLastAction: (msg: string) => vo
   );
 }
 
+function AndLogicFeature({ setLastAction }: { setLastAction: (msg: string) => void }) {
+  const [signalOn, setSignalOn] = useState(false);
+  const [conditionA, setConditionA] = useState(false); // turn_angle > 30
+  const [conditionB, setConditionB] = useState(false); // return_to_normal
+  
+  const shouldExtinguish = conditionA && conditionB;
+
+  useEffect(() => {
+    if (signalOn && shouldExtinguish) {
+      setSignalOn(false);
+      setLastAction("条件均满足（1 AND 1 = 1），触发与逻辑，转向灯自动熄灭指令已发出！");
+      // Optionally reset steering conditions automatically after extinguishing
+      const timer = setTimeout(() => {
+        setConditionA(false);
+        setConditionB(false);
+      }, 3000);
+      return () => clearTimeout(timer);
+    } else if (signalOn) {
+      if (!conditionA && !conditionB) {
+        setLastAction("转向灯已开启（条件皆为0）。请转动方向盘超过30度。");
+      } else if (conditionA && !conditionB) {
+        setLastAction("已记录转角>30度。现在如果方向盘回正，灯就会自动熄灭哦。");
+      } else if (!conditionA && conditionB) {
+        setLastAction("方向盘已回正，但之前转角未超过30度（如变道），系统不会自动熄灭转向灯。");
+      }
+    }
+  }, [conditionA, conditionB, signalOn, shouldExtinguish, setLastAction]);
+
+  const toggleSignal = () => {
+    if (!signalOn) {
+      setSignalOn(true);
+      setConditionA(false);
+      setConditionB(false);
+      setLastAction("手动开启转向灯。准备开始变道或转弯！");
+    } else {
+      setSignalOn(false);
+      setLastAction("手动关闭了转向灯。");
+    }
+  };
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      {/* Left Area: Car Visual */}
+      <div className="lg:col-span-7 flex flex-col items-center">
+        <div className="relative w-full max-w-sm aspect-[4/5] bg-blue-700 rounded-t-[4rem] rounded-b-2xl border-x-8 border-t-8 border-blue-800 shadow-2xl flex flex-col overflow-hidden">
+          {/* Top Panel - Dashboard */}
+          <div className="h-24 bg-black flex items-center justify-center border-b-4 border-blue-900 relative gap-8 px-6">
+            <motion.div 
+              animate={{ opacity: signalOn ? [1, 0.2, 1] : 0.2 }}
+              transition={{ repeat: Infinity, duration: 0.6 }}
+              className="w-12 h-12 flex items-center justify-center bg-gray-900 rounded-xl"
+            >
+              <ArrowLeftCircle className={`w-10 h-10 ${signalOn ? 'text-green-500 drop-shadow-[0_0_10px_rgba(34,197,94,0.8)]' : 'text-gray-700'}`} />
+            </motion.div>
+            
+            <div className="flex-1 text-center">
+              <div className="bg-blue-900/50 px-4 py-1 rounded-full text-blue-200 font-mono text-sm border border-blue-700 inline-block mb-1">
+                智能仪表盘
+              </div>
+              <div className={`text-xs font-bold ${signalOn ? 'text-green-400' : 'text-gray-500'}`}>
+                {signalOn ? '转向灯闪烁中' : '转向灯已关闭'}
+              </div>
+            </div>
+
+            <motion.div 
+              className="w-12 h-12 flex items-center justify-center bg-gray-900 rounded-xl"
+            >
+              {/* Using static right arrow to keep the layout symmetric */}
+              <ArrowRightCircle className="w-10 h-10 text-gray-700" />
+            </motion.div>
+          </div>
+
+          {/* Car Inside (Steering Wheel) */}
+          <div className="flex-1 bg-blue-950 relative flex items-center justify-center overflow-hidden p-8">
+            <div className="absolute inset-0 bg-gradient-to-b from-blue-100 to-gray-200 flex flex-col items-center justify-center">
+              <motion.div 
+                animate={{ rotate: conditionA && !conditionB ? -45 : (conditionB ? 0 : 0) }}
+                transition={{ type: 'spring', stiffness: 60, damping: 15 }}
+                className="w-56 h-56 rounded-full border-[20px] border-gray-800 flex items-center justify-center relative shadow-2xl bg-gray-300"
+              >
+                {/* Wheel spokes */}
+                <div className="absolute w-full h-6 bg-gray-800" />
+                <div className="absolute w-6 h-full bg-gray-800" />
+                
+                {/* Center horn/logo area */}
+                <div className="w-20 h-20 bg-gray-900 rounded-full z-10 flex items-center justify-center shadow-inner border-4 border-gray-600">
+                  <Car className="w-8 h-8 text-gray-400" />
+                </div>
+              </motion.div>
+            </div>
+            
+            <div className="absolute inset-0 pointer-events-none border-t-8 border-blue-900 z-30" />
+          </div>
+          
+          <div className="h-8 bg-blue-800 z-30 relative" />
+        </div>
+        
+        {/* Status Monitoring */}
+        <div className="mt-8 bg-white/80 backdrop-blur p-6 rounded-3xl shadow-lg border border-white max-w-sm w-full">
+          <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+            <CheckCircle2 className="text-green-500" />
+            系统状态监测
+          </h3>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="p-3 bg-gray-50 rounded-2xl flex items-center justify-between">
+              <span className="text-sm text-gray-600">转向灯状态</span>
+              <span className={`px-2 py-1 rounded-full text-xs font-bold ${signalOn ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-600'}`}>
+                {signalOn ? '工作中' : '已熄灭'}
+              </span>
+            </div>
+            <div className="p-3 bg-gray-50 rounded-2xl flex items-center justify-between">
+              <span className="text-sm text-gray-600">自动熄灭(与)</span>
+              <span className={`text-lg font-mono font-bold ${shouldExtinguish ? 'text-orange-600' : 'text-gray-400'}`}>
+                {shouldExtinguish ? '1 (真)' : '0 (假)'}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Right Area: Controls */}
+      <div className="lg:col-span-5 space-y-6">
+        {/* Input Control */}
+        <section className="bg-white p-6 rounded-[2rem] shadow-xl border-4 border-white">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-2xl font-black text-gray-800 flex items-center gap-3">
+              <Car className="text-blue-500" />
+              控制指令输入
+            </h2>
+            <button 
+              onClick={toggleSignal}
+              className={`px-4 py-2 rounded-full font-bold flex items-center gap-2 transition-all ${signalOn ? 'bg-red-100 text-red-600 hover:bg-red-200' : 'bg-green-100 text-green-600 hover:bg-green-200 shadow-md'}`}
+            >
+              <Power className="w-4 h-4" />
+              {signalOn ? '手动关闭转向' : '手动开启转向'}
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => {
+                setConditionA(!conditionA);
+                setLastAction(`你将“转角>30度”设置为 ${!conditionA ? '1 (真)' : '0 (假)'}。`);
+              }}
+              className={`flex flex-col items-center justify-center p-6 rounded-3xl transition-all duration-300 border-b-4 ${
+                conditionA 
+                  ? `bg-orange-500 border-orange-700 text-white shadow-lg translate-y-[2px]` 
+                  : 'bg-gray-100 border-gray-300 text-gray-500'
+              }`}
+            >
+              <Navigation className="w-10 h-10 mb-3" />
+              <span className="font-bold whitespace-nowrap">条件A: 转角{'>'}30度</span>
+              <span className="text-xs opacity-80 mt-1">{conditionA ? '输入: 1' : '输入: 0'}</span>
+            </motion.button>
+
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => {
+                setConditionB(!conditionB);
+                setLastAction(`你将“方向盘回正”设置为 ${!conditionB ? '1 (真)' : '0 (假)'}。`);
+              }}
+              className={`flex flex-col items-center justify-center p-6 rounded-3xl transition-all duration-300 border-b-4 ${
+                conditionB 
+                  ? `bg-blue-500 border-blue-700 text-white shadow-lg translate-y-[2px]` 
+                  : 'bg-gray-100 border-gray-300 text-gray-500'
+              }`}
+            >
+              <RefreshCcw className="w-10 h-10 mb-3" />
+              <span className="font-bold whitespace-nowrap">条件B: 判定回正</span>
+              <span className="text-xs opacity-80 mt-1">{conditionB ? '输入: 1' : '输入: 0'}</span>
+            </motion.button>
+          </div>
+        </section>
+
+        {/* Logic Explanation */}
+        <section className="bg-white p-6 rounded-[2rem] shadow-xl overflow-hidden border-4 border-white">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-black text-gray-800 flex items-center gap-2">
+              <ChevronRight className="text-blue-500" />
+              “与”逻辑揭秘
+            </h2>
+            <div className="bg-blue-100 px-3 py-1 rounded-full text-xs font-bold text-blue-600">
+              两个条件都要满足 (AND)
+            </div>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-center border-separate border-spacing-1">
+              <thead>
+                <tr className="text-xs text-gray-500 uppercase tracking-wider">
+                  <th className="p-2">条件A<br/><span className="text-[10px] opacity-70">转角&gt;30</span></th>
+                  <th className="p-2">×</th>
+                  <th className="p-2">条件B<br/><span className="text-[10px] opacity-70">方向盘回正</span></th>
+                  <th className="p-2">=</th>
+                  <th className="p-2">结果<br/><span className="text-[10px] opacity-70">自动熄灭</span></th>
+                </tr>
+              </thead>
+              <tbody className="font-mono">
+                {[
+                  [0, 0, 0, !conditionA && !conditionB],
+                  [0, 1, 0, !conditionA && conditionB],
+                  [1, 0, 0, conditionA && !conditionB],
+                  [1, 1, 1, conditionA && conditionB]
+                ].map((row, idx) => (
+                  <tr 
+                    key={idx}
+                    className={`transition-colors duration-200 ${
+                      row[3] ? 'bg-orange-50 border-2 border-orange-200' : 'bg-transparent'
+                    }`}
+                  >
+                    <td className="p-3 bg-gray-50 rounded-lg text-lg font-bold">{row[0]}</td>
+                    <td className="p-3 text-gray-300 font-bold">×</td>
+                    <td className="p-3 bg-gray-50 rounded-lg text-lg font-bold">{row[1]}</td>
+                    <td className="p-3 text-gray-300 font-bold">=</td>
+                    <td className={`p-3 rounded-lg text-xl font-black ${row[2] === 1 ? 'text-orange-500' : 'text-gray-400'}`}>
+                      {row[2]}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="mt-6 p-4 bg-blue-50 rounded-2xl border border-blue-100">
+            <div className="flex gap-3">
+              <div className="bg-blue-500 p-2 rounded-xl h-fit text-white">
+                <Info className="w-4 h-4" />
+              </div>
+              <div>
+                <h4 className="font-bold text-blue-900 text-sm">老师敲黑板：</h4>
+                <p className="text-blue-700 text-xs leading-relaxed mt-1">
+                  这就是逻辑“与”运算（AND）。两个条件（输入A和输入B）必须<b>同时满足</b>，结果才为真（1）。在汽车里，只有“转动角度够大”并且“方向盘回正”同时发生，转向灯才会自动熄灭，避免了变道时不小心熄灭的情况！
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+  );
+}
+
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'or' | 'not'>('or');
+  const [activeTab, setActiveTab] = useState<'or' | 'not' | 'and'>('or');
   const [lastAction, setLastAction] = useState<string>("欢迎来到信息技术课！");
 
   return (
@@ -547,8 +798,8 @@ export default function App() {
           <div className="flex justify-center mb-6">
             <ElevatorLogo />
           </div>
-          <h1 className="text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600 mb-4 tracking-tight">
-            电梯逻辑大揭秘
+          <h1 className="text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 mb-4 tracking-tight">
+            生活中的逻辑大揭秘
           </h1>
           <div className="inline-flex items-center gap-2 bg-white/60 backdrop-blur px-4 py-2 rounded-full border border-purple-100 shadow-sm">
             <Info className="w-4 h-4 text-purple-500" />
@@ -558,10 +809,10 @@ export default function App() {
 
         {/* Navigation Bar */}
         <div className="flex justify-center mb-10">
-          <div className="bg-white/80 backdrop-blur p-2 rounded-full flex gap-2 shadow-sm border border-white">
+          <div className="bg-white/80 backdrop-blur p-2 rounded-full flex flex-wrap justify-center gap-2 shadow-sm border border-white">
             <button 
               onClick={() => { setActiveTab('or'); setLastAction("已切换到电梯门控制（或运算）。"); }}
-              className={`px-6 py-3 md:px-8 rounded-full font-bold transition-all text-sm md:text-base ${
+              className={`px-4 py-2 md:px-6 md:py-3 rounded-full font-bold transition-all text-sm md:text-base ${
                 activeTab === 'or' ? 'bg-pink-500 text-white shadow-md' : 'text-gray-500 hover:bg-gray-100'
               }`}
             >
@@ -569,11 +820,19 @@ export default function App() {
             </button>
             <button 
               onClick={() => { setActiveTab('not'); setLastAction("已切换到超载报警系统（非运算）。"); }}
-              className={`px-6 py-3 md:px-8 rounded-full font-bold transition-all text-sm md:text-base ${
+              className={`px-4 py-2 md:px-6 md:py-3 rounded-full font-bold transition-all text-sm md:text-base ${
                 activeTab === 'not' ? 'bg-purple-500 text-white shadow-md' : 'text-gray-500 hover:bg-gray-100'
               }`}
             >
               小哨兵超载报警 (非)
+            </button>
+            <button 
+              onClick={() => { setActiveTab('and'); setLastAction("已切换到自动熄灭转向灯系统（与运算）。"); }}
+              className={`px-4 py-2 md:px-6 md:py-3 rounded-full font-bold transition-all text-sm md:text-base ${
+                activeTab === 'and' ? 'bg-blue-500 text-white shadow-md' : 'text-gray-500 hover:bg-gray-100'
+              }`}
+            >
+              自动熄灭转向灯 (与)
             </button>
           </div>
         </div>
@@ -581,6 +840,7 @@ export default function App() {
         <main>
           {activeTab === 'or' && <OrLogicFeature setLastAction={setLastAction} />}
           {activeTab === 'not' && <NotLogicFeature setLastAction={setLastAction} />}
+          {activeTab === 'and' && <AndLogicFeature setLastAction={setLastAction} />}
         </main>
       </div>
 
