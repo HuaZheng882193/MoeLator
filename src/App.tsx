@@ -760,8 +760,186 @@ function AndLogicFeature({ setLastAction }: { setLastAction: (msg: string) => vo
   );
 }
 
+function SeatbeltLogicFeature({ setLastAction }: { setLastAction: (msg: string) => void }) {
+  const [isFastened, setIsFastened] = useState(false);
+  const [isBeeping, setIsBeeping] = useState(false);
+
+  const alarmOn = !isFastened;
+
+  useEffect(() => {
+    let interval: any;
+    if (alarmOn) {
+      setLastAction("警告！微动开关状态为 0 (未系)，非运算输出为 1，发出蜂鸣警报！");
+      interval = setInterval(() => {
+        setIsBeeping(prev => !prev);
+      }, 500);
+    } else {
+      setLastAction("安全带已系！微动开关状态为 1 (已系)，非运算输出为 0，警报解除。");
+      setIsBeeping(false);
+    }
+    return () => clearInterval(interval);
+  }, [alarmOn, setLastAction]);
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      <div className="lg:col-span-7 flex flex-col items-center">
+        <div className="relative w-full max-w-sm aspect-[4/5] bg-teal-700 rounded-t-[4rem] rounded-b-2xl border-x-8 border-t-8 border-teal-800 shadow-2xl flex flex-col overflow-hidden">
+          <div className="h-20 bg-black flex items-center justify-center border-b-4 border-teal-900 relative gap-4">
+             <motion.div 
+              animate={{ opacity: alarmOn ? (isBeeping ? 1 : 0.2) : 0.2 }}
+              className={`w-12 h-12 rounded-full flex items-center justify-center ${alarmOn ? 'bg-red-500 shadow-[0_0_20px_rgba(220,38,38,0.8)]' : 'bg-gray-800'}`}
+            >
+              <BellRing className={`w-6 h-6 ${alarmOn ? 'text-white' : 'text-gray-600'}`} />
+            </motion.div>
+            <div className="bg-teal-900/30 px-6 py-2 rounded flex flex-col items-center">
+              <span className={`font-mono text-xl font-bold leading-none ${alarmOn ? 'text-red-500' : 'text-green-500'}`}>
+                {alarmOn ? '请系好安全带' : '安全带已系'}
+              </span>
+            </div>
+          </div>
+
+          <div className="flex-1 bg-teal-950 relative flex items-center justify-center overflow-hidden">
+            <div className="absolute inset-0 bg-gray-100 flex flex-col items-center justify-center">
+              <motion.div 
+                className={`p-8 rounded-full flex flex-col items-center border-8 shadow-xl z-20 relative ${isFastened ? 'bg-green-100 border-green-400' : 'bg-red-100 border-red-400'}`}
+              >
+                <span className="text-6xl">{isFastened ? '😌' : '😰'}</span>
+                
+                <AnimatePresence>
+                  {isFastened && (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="absolute w-32 h-4 bg-gray-800 rotate-45 z-30 shadow-md"
+                      style={{ transformOrigin: 'center' }}
+                    />
+                  )}
+                </AnimatePresence>
+              </motion.div>
+
+              <div className="absolute bottom-10 bg-white px-4 py-2 rounded-xl shadow-md border-2 border-gray-300 flex items-center gap-3">
+                <div className="text-sm font-bold text-gray-600">微动开关</div>
+                <div className={`px-3 py-1 rounded font-mono font-bold text-white ${isFastened ? 'bg-green-500' : 'bg-red-500'}`}>
+                  {isFastened ? '1 (按下)' : '0 (松开)'}
+                </div>
+              </div>
+            </div>
+            
+            <div className="absolute inset-0 pointer-events-none border-t-8 border-teal-900 z-30" />
+          </div>
+          
+          <div className="h-8 bg-teal-800 z-30 relative" />
+        </div>
+        
+        <div className="mt-8 bg-white/80 backdrop-blur p-6 rounded-3xl shadow-lg border border-white max-w-sm w-full">
+          <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+            <CheckCircle2 className="text-green-500" />
+            系统状态监测
+          </h3>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="p-3 bg-gray-50 rounded-2xl flex items-center justify-between">
+              <span className="text-sm text-gray-600">安全带(输入A)</span>
+              <span className={`text-lg font-mono font-bold ${isFastened ? 'text-green-600' : 'text-red-600'}`}>
+                {isFastened ? '1' : '0'}
+              </span>
+            </div>
+            <div className="p-3 bg-gray-50 rounded-2xl flex items-center justify-between">
+              <span className="text-sm text-gray-600">报警(输出C)</span>
+              <span className={`text-lg font-mono font-bold ${alarmOn ? 'text-red-600' : 'text-gray-400'}`}>
+                {alarmOn ? '1' : '0'}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="lg:col-span-5 space-y-6">
+        <section className="bg-white p-6 rounded-[2rem] shadow-xl border-4 border-white">
+          <h2 className="text-2xl font-black text-gray-800 mb-6 flex items-center gap-3">
+            <Car className="text-teal-500" />
+            模拟插扣操作
+          </h2>
+          
+          <div className="flex flex-col gap-4">
+            <button 
+              onClick={() => setIsFastened(false)}
+              className={`py-4 rounded-2xl font-bold transition-all border-b-4 flex items-center justify-center gap-2 ${!isFastened ? 'bg-red-500 border-red-700 text-white translate-y-[2px]' : 'bg-red-50 border-red-200 text-red-700 hover:bg-red-100'}`}
+            >
+              拔出安全带 (微动开关: 0)
+            </button>
+            <button 
+              onClick={() => setIsFastened(true)}
+              className={`py-4 rounded-2xl font-bold transition-all border-b-4 flex items-center justify-center gap-2 ${isFastened ? 'bg-green-500 border-green-700 text-white translate-y-[2px]' : 'bg-green-50 border-green-200 text-green-700 hover:bg-green-100'}`}
+            >
+              插入安全带 (微动开关: 1)
+            </button>
+          </div>
+        </section>
+
+        <section className="bg-white p-6 rounded-[2rem] shadow-xl border-4 border-white">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-black text-gray-800 flex items-center gap-2">
+              <ChevronRight className="text-teal-500" />
+              真值表逻辑
+            </h2>
+            <div className="bg-teal-100 px-3 py-1 rounded-full text-xs font-bold text-teal-600">
+              NOT (非运算)
+            </div>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-center border-separate border-spacing-1">
+              <thead>
+                <tr className="text-xs text-gray-500 uppercase tracking-wider">
+                  <th className="p-2">安全带状态</th>
+                  <th className="p-2">微动开关</th>
+                  <th className="p-2">提醒蜂鸣</th>
+                </tr>
+              </thead>
+              <tbody className="font-mono">
+                {[
+                  { state: '未系好', input: 0, output: 1, action: '发出提示音', active: !isFastened },
+                  { state: '已系好', input: 1, output: 0, action: '停止提醒', active: isFastened }
+                ].map((row, idx) => (
+                  <tr 
+                    key={idx}
+                    className={`transition-colors duration-200 ${
+                      row.active ? 'bg-teal-50 border-2 border-teal-200' : 'bg-transparent'
+                    }`}
+                  >
+                    <td className="p-3 bg-gray-50 rounded-lg text-sm font-bold">{row.state}</td>
+                    <td className={`p-3 rounded-lg text-lg font-bold ${row.input === 1 ? 'text-green-500' : 'text-red-500'}`}>{row.input}</td>
+                    <td className={`p-3 rounded-lg text-sm font-black ${row.output === 1 ? 'text-red-500' : 'text-gray-400'}`}>
+                      {row.output} ({row.action})
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="mt-6 p-4 bg-teal-50 rounded-2xl border border-teal-100">
+            <div className="flex gap-3">
+              <div className="bg-teal-500 p-2 rounded-xl h-fit text-white">
+                <Info className="w-4 h-4" />
+              </div>
+              <div>
+                <h4 className="font-bold text-teal-900 text-sm">老师敲黑板：</h4>
+                <p className="text-teal-700 text-xs leading-relaxed mt-1">
+                  这就是生活中的“非”逻辑（NOT）。硬件微动开关将物理状态转换为0和1。当输入为0（未系）时，系统取反输出1，触发警报；当输入为1（已系）时，输出0，解除警报。程序中还加入了延时器（定时模块），将持续的刺耳噪音优化为间歇性的提醒音，这就是仿真优化的“人性化”！
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+  );
+}
+
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'or' | 'not' | 'and'>('or');
+  const [activeTab, setActiveTab] = useState<'or' | 'not' | 'and' | 'seatbelt'>('or');
   const [lastAction, setLastAction] = useState<string>("欢迎来到信息技术课！");
 
   return (
@@ -834,6 +1012,14 @@ export default function App() {
             >
               自动熄灭转向灯 (与)
             </button>
+            <button 
+              onClick={() => { setActiveTab('seatbelt'); setLastAction("已切换到安全带未系提醒系统（非运算）。"); }}
+              className={`px-4 py-2 md:px-6 md:py-3 rounded-full font-bold transition-all text-sm md:text-base ${
+                activeTab === 'seatbelt' ? 'bg-teal-500 text-white shadow-md' : 'text-gray-500 hover:bg-gray-100'
+              }`}
+            >
+              安全带未系提醒 (非)
+            </button>
           </div>
         </div>
 
@@ -841,6 +1027,7 @@ export default function App() {
           {activeTab === 'or' && <OrLogicFeature setLastAction={setLastAction} />}
           {activeTab === 'not' && <NotLogicFeature setLastAction={setLastAction} />}
           {activeTab === 'and' && <AndLogicFeature setLastAction={setLastAction} />}
+          {activeTab === 'seatbelt' && <SeatbeltLogicFeature setLastAction={setLastAction} />}
         </main>
       </div>
 
